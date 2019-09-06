@@ -25,8 +25,8 @@
 
 #include "utils.h"
 
-#include "error.h"
-#include "vm.h"
+#include "../quv.h"
+#include "private.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -114,8 +114,11 @@ JSValue quv_addr2obj(JSContext *ctx, const struct sockaddr *sa) {
             JS_DefinePropertyValueStr(ctx, obj, "family", JS_NewInt32(ctx, AF_INET6), JS_PROP_C_W_E);
             JS_DefinePropertyValueStr(ctx, obj, "ip", JS_NewString(ctx, buf), JS_PROP_C_W_E);
             JS_DefinePropertyValueStr(ctx, obj, "port", JS_NewInt32(ctx, ntohs(addr6->sin6_port)), JS_PROP_C_W_E);
-            JS_DefinePropertyValueStr(
-                ctx, obj, "flowinfo", JS_NewInt32(ctx, ntohl(addr6->sin6_flowinfo)), JS_PROP_C_W_E);
+            JS_DefinePropertyValueStr(ctx,
+                                      obj,
+                                      "flowinfo",
+                                      JS_NewInt32(ctx, ntohl(addr6->sin6_flowinfo)),
+                                      JS_PROP_C_W_E);
             JS_DefinePropertyValueStr(ctx, obj, "scopeId", JS_NewInt32(ctx, addr6->sin6_scope_id), JS_PROP_C_W_E);
 
             return obj;
@@ -127,32 +130,18 @@ JSValue quv_addr2obj(JSContext *ctx, const struct sockaddr *sa) {
     }
 }
 
-static void js__print(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) {
-    int i;
-    const char *str;
-
-    for (i = 0; i < argc; i++) {
-        if (i != 0)
-            putchar(' ');
-        str = JS_ToCString(ctx, argv[i]);
-        if (!str)
-            return;
-        fputs(str, stdout);
-        JS_FreeCString(ctx, str);
-    }
-    putchar('\n');
-}
-
 void quv_dump_error(JSContext *ctx) {
     JSValue exception_val, val;
-    const char *stack;
+    const char *stack, *exception_str;
     int is_error;
 
     exception_val = JS_GetException(ctx);
     is_error = JS_IsError(ctx, exception_val);
     if (!is_error)
         printf("Throw: ");
-    js__print(ctx, JS_NULL, 1, (JSValueConst *) &exception_val);
+    exception_str = JS_ToCString(ctx, exception_val);
+    printf("%s\n", exception_str);
+    JS_FreeCString(ctx, exception_str);
     if (is_error) {
         val = JS_GetPropertyStr(ctx, exception_val, "stack");
         if (!JS_IsUndefined(val)) {
@@ -217,7 +206,7 @@ void QUV_MarkPromise(JSRuntime *rt, QUVPromise *p, JS_MarkFunc *mark_func) {
     JS_MarkValue(rt, p->rfuncs[1], mark_func);
 }
 
-void QUV_SettlePromise(JSContext *ctx, QUVPromise *p, BOOL is_reject, int argc, JSValueConst *argv) {
+void QUV_SettlePromise(JSContext *ctx, QUVPromise *p, bool is_reject, int argc, JSValueConst *argv) {
     JSValue ret = JS_Call(ctx, p->rfuncs[is_reject], JS_UNDEFINED, argc, argv);
     for (int i = 0; i < argc; i++)
         JS_FreeValue(ctx, argv[i]);
@@ -226,14 +215,14 @@ void QUV_SettlePromise(JSContext *ctx, QUVPromise *p, BOOL is_reject, int argc, 
 }
 
 void QUV_ResolvePromise(JSContext *ctx, QUVPromise *p, int argc, JSValueConst *argv) {
-    QUV_SettlePromise(ctx, p, FALSE, argc, argv);
+    QUV_SettlePromise(ctx, p, false, argc, argv);
 }
 
 void QUV_RejectPromise(JSContext *ctx, QUVPromise *p, int argc, JSValueConst *argv) {
-    QUV_SettlePromise(ctx, p, TRUE, argc, argv);
+    QUV_SettlePromise(ctx, p, true, argc, argv);
 }
 
-static inline JSValue quv__settled_promise(JSContext *ctx, BOOL is_reject, int argc, JSValueConst *argv) {
+static inline JSValue quv__settled_promise(JSContext *ctx, bool is_reject, int argc, JSValueConst *argv) {
     JSValue promise, resolving_funcs[2], ret;
 
     promise = JS_NewPromiseCapability(ctx, resolving_funcs);
@@ -252,9 +241,9 @@ static inline JSValue quv__settled_promise(JSContext *ctx, BOOL is_reject, int a
 }
 
 JSValue QUV_NewResolvedPromise(JSContext *ctx, int argc, JSValueConst *argv) {
-    return quv__settled_promise(ctx, FALSE, argc, argv);
+    return quv__settled_promise(ctx, false, argc, argv);
 }
 
 JSValue QUV_NewRejectedPromise(JSContext *ctx, int argc, JSValueConst *argv) {
-    return quv__settled_promise(ctx, TRUE, argc, argv);
+    return quv__settled_promise(ctx, true, argc, argv);
 }

@@ -22,10 +22,7 @@
  * THE SOFTWARE.
  */
 
-#include "streams.h"
-
-#include "error.h"
-#include "timers.h"
+#include "private.h"
 #include "utils.h"
 
 
@@ -752,8 +749,11 @@ uv_stream_t *quv_pipe_get_stream(JSContext *ctx, JSValueConst obj) {
     return NULL;
 }
 
-static JSValue
-quv_pipe_getsockpeername(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, int magic) {
+static JSValue quv_pipe_getsockpeername(JSContext *ctx,
+                                        JSValueConst this_val,
+                                        int argc,
+                                        JSValueConst *argv,
+                                        int magic) {
     QUVStream *t = quv_pipe_get(ctx, this_val);
     if (!t)
         return JS_EXCEPTION;

@@ -5,17 +5,16 @@ BUILT=build/BUILT
 
 BUILDTYPE?=Release
 PREFIX?=/usr/local
-VERBOSE?=
 
 all: build
 
 build: $(CMAKE_MK)
-	@$(MAKE) -C build VERBOSE=$(VERBOSE)
-	touch $(BUILT)
+	ninja -C build
+	@touch $(BUILT)
 
 $(CMAKE_MK):
 	@mkdir -p build
-	cd build; cmake ../ -DCMAKE_BUILD_TYPE=$(BUILDTYPE) -DCMAKE_INSTALL_PREFIX=$(PREFIX)
+	cd build; cmake ../ -DCMAKE_BUILD_TYPE=$(BUILDTYPE) -DCMAKE_INSTALL_PREFIX=$(PREFIX) -GNinja
 
 install: $(BUILT)
 	@$(MAKE) -C build install
@@ -29,4 +28,7 @@ distclean:
 format:
 	clang-format -i src/**/*.{c,h} src/*.{c,h}
 
-.PHONY: all build install clean distclean format
+test:
+	./build/quv tests/run.js
+
+.PHONY: all build install clean distclean format test

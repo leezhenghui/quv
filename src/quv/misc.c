@@ -22,12 +22,15 @@
  * THE SOFTWARE.
  */
 
-#include "misc.h"
-
-#include "error.h"
+#include "../version.h"
+#include "private.h"
 #include "utils.h"
 
 #include <unistd.h>
+
+#ifdef QUV_HAVE_CURL
+#   include <curl/curl.h>
+#endif
 
 
 static JSValue quv_hrtime(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) {
@@ -260,6 +263,23 @@ static JSValue quv_exepath(JSContext *ctx, JSValueConst this_val, int argc, JSVa
     return ret;
 }
 
+static JSValue quv_print(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) {
+    int i;
+    const char *str;
+
+    for (i = 0; i < argc; i++) {
+        if (i != 0)
+            putchar(' ');
+        str = JS_ToCString(ctx, argv[i]);
+        if (!str)
+            return JS_EXCEPTION;
+        fputs(str, stdout);
+        JS_FreeCString(ctx, str);
+    }
+    putchar('\n');
+    return JS_UNDEFINED;
+}
+
 static const JSCFunctionListEntry quv_misc_funcs[] = {
     QUV_CONST(AF_INET),
     QUV_CONST(AF_INET6),
@@ -286,12 +306,37 @@ static const JSCFunctionListEntry quv_misc_funcs[] = {
     JS_CFUNC_DEF("homedir", 0, quv_homedir),
     JS_CFUNC_DEF("tmpdir", 0, quv_tmpdir),
     JS_CFUNC_DEF("exepath", 0, quv_exepath),
+    JS_CFUNC_DEF("print", 1, quv_print),
 };
 
 void quv_mod_misc_init(JSContext *ctx, JSModuleDef *m) {
     JS_SetModuleExportList(ctx, m, quv_misc_funcs, countof(quv_misc_funcs));
+
+    JSValue args = quv__get_args(ctx);
+    JS_FreeValue(ctx, JS_ObjectFreeze(ctx, args));
+    JS_SetModuleExport(ctx, m, "args", args);
+
+    JS_SetModuleExport(ctx, m, "version", JS_NewString(ctx, quv_version()));
+    JSValue versions = JS_NewObjectProto(ctx, JS_NULL);
+    JS_DefinePropertyValueStr(ctx, versions, "quickjs", JS_NewString(ctx, QJS_VERSION_STR), JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, versions, "quv", JS_NewString(ctx, quv_version()), JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, versions, "uv", JS_NewString(ctx, uv_version_string()), JS_PROP_C_W_E);
+#ifdef QUV_HAVE_CURL
+#   ifdef QUV_HAVE_SYSTEM_CURL
+    JS_DefinePropertyValueStr(ctx, versions, "curl", JS_NewString(ctx, "system"), JS_PROP_C_W_E);
+#   else
+    JS_DefinePropertyValueStr(ctx, versions, "curl", JS_NewString(ctx, curl_version()), JS_PROP_C_W_E);
+#   endif
+#else
+    JS_DefinePropertyValueStr(ctx, versions, "curl", JS_UNDEFINED, JS_PROP_C_W_E);
+#endif
+    JS_FreeValue(ctx, JS_ObjectFreeze(ctx, versions));
+    JS_SetModuleExport(ctx, m, "versions", versions);
 }
 
 void quv_mod_misc_export(JSContext *ctx, JSModuleDef *m) {
     JS_AddModuleExportList(ctx, m, quv_misc_funcs, countof(quv_misc_funcs));
+    JS_AddModuleExport(ctx, m, "args");
+    JS_AddModuleExport(ctx, m, "version");
+    JS_AddModuleExport(ctx, m, "versions");
 }

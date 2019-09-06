@@ -24,13 +24,11 @@
  * THE SOFTWARE.
  */
 
-#include "quickjs-libc.h"
 #include "quv.h"
+#include "quv/private.h"
+#include "version.h"
 
 #include <string.h>
-
-extern const uint8_t repl[];
-extern const uint32_t repl_size;
 
 
 static int eval_buf(JSContext *ctx, const void *buf, int buf_len, const char *filename, int eval_flags) {
@@ -39,7 +37,7 @@ static int eval_buf(JSContext *ctx, const void *buf, int buf_len, const char *fi
 
     val = JS_Eval(ctx, buf, buf_len, filename, eval_flags);
     if (JS_IsException(val)) {
-        js_std_dump_error(ctx);
+        quv_dump_error(ctx);
         ret = -1;
     } else {
         ret = 0;
@@ -48,35 +46,13 @@ static int eval_buf(JSContext *ctx, const void *buf, int buf_len, const char *fi
     return ret;
 }
 
-static int eval_file(JSContext *ctx, const char *filename) {
-    uint8_t *buf;
-    int ret, eval_flags;
-    size_t buf_len;
-
-    buf = js_load_file(ctx, &buf_len, filename);
-    if (!buf) {
-        perror(filename);
-        exit(1);
-    }
-
-    if (JS_DetectModule((const char *) buf, buf_len))
-        eval_flags = JS_EVAL_TYPE_MODULE;
-    else
-        eval_flags = JS_EVAL_TYPE_GLOBAL;
-    ret = eval_buf(ctx, buf, buf_len, filename, eval_flags);
-    js_free(ctx, buf);
-    return ret;
-}
-
-#define PROG_NAME "quv"
-
 void help(void) {
-    printf("QuickJS version " CONFIG_VERSION "\n"
-           "usage: " PROG_NAME " [options] [file]\n"
+    printf("quv version %s\n"
+           "usage: quv [options] [file]\n"
            "-h  --help         list options\n"
            "-e  --eval EXPR    evaluate EXPR\n"
            "-i  --interactive  go to interactive mode\n"
-           "-q  --quit         just instantiate the interpreter and quit\n");
+           "-q  --quit         just instantiate the interpreter and quit\n", quv_version());
     exit(1);
 }
 
@@ -157,12 +133,16 @@ int main(int argc, char **argv) {
         } else {
             const char *filename;
             filename = argv[optind];
-
-            if (eval_file(ctx, filename))
+            JSValue ret = QUV_EvalFile(ctx, filename, JS_EVAL_TYPE_MODULE, true);
+            if (JS_IsException(ret)) {
+                quv_dump_error(ctx);
+                JS_FreeValue(ctx, ret);
                 goto fail;
+            }
+            JS_FreeValue(ctx, ret);
         }
         if (interactive) {
-            js_std_eval_binary(ctx, repl, repl_size, 0);
+            QUV_RunRepl(ctx);
         }
         QUV_Run(qrt);
     }

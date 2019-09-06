@@ -22,17 +22,13 @@
  * THE SOFTWARE.
  */
 
-#include "worker.h"
-
-#include "../quickjs-libc.h"
-#include "error.h"
-#include "utils.h"
-#include "vm.h"
+#include "../quv.h"
+#include "private.h"
 
 #include <unistd.h>
 
 
-static JSValue quv_new_worker(JSContext *ctx, int channel_fd, BOOL is_main);
+static JSValue quv_new_worker(JSContext *ctx, int channel_fd, bool is_main);
 
 
 static JSClassID quv_worker_class_id;
@@ -54,7 +50,7 @@ typedef struct {
     JSValue events[3];
     uv_thread_t tid;
     QUVRuntime *wrt;
-    BOOL is_main;
+    bool is_main;
 } QUVWorker;
 
 typedef struct {
@@ -63,24 +59,25 @@ typedef struct {
 } QUVWorkerWriteReq;
 
 static JSValue worker_eval(JSContext *ctx, int argc, JSValueConst *argv) {
-    uint8_t *buf;
-    size_t buf_len;
     const char *filename;
+    JSValue ret;
 
     filename = JS_ToCString(ctx, argv[0]);
-    buf = js_load_file(ctx, &buf_len, filename);
-    if (!buf)
-        goto error;
-
-    JSValue val = JS_Eval(ctx, (const char *) buf, buf_len, filename, JS_EVAL_TYPE_MODULE);
-    if (JS_IsException(val)) {
-        js_std_dump_error(ctx);
+    if (!filename) {
+        quv_dump_error(ctx);
         goto error;
     }
 
-    JS_FreeValue(ctx, val);
-    js_free(ctx, buf);
+    ret = QUV_EvalFile(ctx, filename, JS_EVAL_TYPE_MODULE, false);
+    JS_FreeCString(ctx, filename);
 
+    if (JS_IsException(ret)) {
+        quv_dump_error(ctx);
+        JS_FreeValue(ctx, ret);
+        goto error;
+    }
+
+    JS_FreeValue(ctx, ret);
     return JS_UNDEFINED;
 
 error:;
@@ -95,14 +92,14 @@ error:;
 static void worker_entry(void *arg) {
     worker_data_t *wd = arg;
 
-    QUVRuntime *wrt = QUV_NewRuntime2(TRUE);
+    QUVRuntime *wrt = QUV_NewRuntime2(true);
     CHECK_NOT_NULL(wrt);
 
     JSContext *ctx = QUV_GetJSContext(wrt);
 
     /* Set the 'workerThis' global object. */
     JSValue global_obj = JS_GetGlobalObject(ctx);
-    JSValue worker_obj = quv_new_worker(ctx, wd->channel_fd, FALSE);
+    JSValue worker_obj = quv_new_worker(ctx, wd->channel_fd, false);
     JS_SetPropertyStr(ctx, global_obj, "workerThis", worker_obj);
     JS_FreeValue(ctx, global_obj);
 
@@ -217,7 +214,7 @@ static void uv__read_cb(uv_stream_t *handle, ssize_t nread, const uv_buf_t *buf)
     js_free(ctx, buf->base);
 }
 
-static JSValue quv_new_worker(JSContext *ctx, int channel_fd, BOOL is_main) {
+static JSValue quv_new_worker(JSContext *ctx, int channel_fd, bool is_main) {
     JSValue obj = JS_NewObjectClass(ctx, quv_worker_class_id);
     if (JS_IsException(obj))
         return obj;
@@ -255,7 +252,7 @@ static JSValue quv_worker_constructor(JSContext *ctx, JSValueConst new_target, i
     if (r != 0)
         return quv_throw_errno(ctx, -errno);
 
-    JSValue obj = quv_new_worker(ctx, fds[0], TRUE);
+    JSValue obj = quv_new_worker(ctx, fds[0], true);
     if (JS_IsException(obj)) {
         close(fds[0]);
         close(fds[1]);

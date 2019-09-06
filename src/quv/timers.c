@@ -22,9 +22,7 @@
  * THE SOFTWARE.
  */
 
-#include "timers.h"
-
-#include "error.h"
+#include "private.h"
 #include "utils.h"
 
 
@@ -50,8 +48,9 @@ static void clear_timer(QUVTimer *th) {
     }
     th->argc = 0;
 
-    JS_FreeValue(ctx, th->obj);
+    JSValue obj = th->obj;
     th->obj = JS_UNDEFINED;
+    JS_FreeValue(ctx, obj);
 }
 
 static void call_timer(QUVTimer *th) {

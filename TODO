@@ -1,5 +1,3 @@
 
-- refactor js_load_file to use libuv
-    - create QUV_EvalXXX
-- implement fetch using libcurl / libwebsockets
+- implement fetch using libcurl
 - investigate libffi integration

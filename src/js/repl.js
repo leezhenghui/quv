@@ -23,10 +23,12 @@
  * THE SOFTWARE.
  */
 
-import * as std from "std";
-import * as uv from "uv";
+import * as path from "@quv/path";
 
 (function(g) {
+    /* expose builtins */
+    g.path = path;
+
     /* close global objects */
     var Object = g.Object;
     var String = g.String;
@@ -106,29 +108,29 @@ import * as uv from "uv";
     var sigint_h;
     
     function termInit() {
-        if (!uv.isatty(uv.STDIN_FILENO))
+        if (!quv.isatty(quv.STDIN_FILENO))
             throw new Error('stdin is not a TTY');
 
-        stdin = new uv.TTY(uv.STDIN_FILENO, true);
-        stdout = new uv.TTY(uv.STDOUT_FILENO, false);
+        stdin = new quv.TTY(quv.STDIN_FILENO, true);
+        stdout = new quv.TTY(quv.STDOUT_FILENO, false);
         
         /* get the terminal size */
         var size = stdin.getWinSize();
         term_width = size.width;
 
         /* set the TTY to raw mode */
-        stdin.setMode(uv.UV_TTY_MODE_RAW);
+        stdin.setMode(quv.UV_TTY_MODE_RAW);
 
         /* install a Ctrl-C signal handler */
-        sigint_h = uv.signal(uv.SIGINT, sigint_handler);
+        sigint_h = quv.signal(quv.SIGINT, sigint_handler);
 
         /* handler to read stdin */
         term_read_handler();
     }
 
     function exit(code) {
-        stdin.setMode(uv.UV_TTY_MODE_NORMAL);
-        std.exit(code);
+        stdin.setMode(quv.UV_TTY_MODE_NORMAL);
+        quv.exit(code);
     }
 
     function sigint_handler() {
@@ -292,6 +294,11 @@ import * as uv from "uv";
     function alert() {
     }
 
+    function clear_screen() {
+        stdout.write("\x1b[H\x1b[J");
+        return -2;
+    }
+
     function beginning_of_line() {
         cursor_pos = 0;
     }
@@ -406,7 +413,7 @@ import * as uv from "uv";
     function control_d() {
         if (cmd.length == 0) {
             stdout.write("\n");
-            return -3; /* exit read eval print loop */
+            exit(0);
         } else {
             delete_char_dir(1);
         }
@@ -667,6 +674,7 @@ import * as uv from "uv";
         "\x09":     completion,             /* ^I - history-search-backward */
         "\x0a":     accept_line,            /* ^J - newline */
         "\x0b":     kill_line,              /* ^K - delete to end of line */
+        "\x0c":     clear_screen,           /* ^L - clear screen */
         "\x0d":     accept_line,            /* ^M - enter */
         "\x0e":     next_history,           /* ^N - down */
         "\x10":     previous_history,       /* ^P - up */
@@ -804,11 +812,6 @@ import * as uv from "uv";
                 return;
             case -2:
                 readline_cb(null);
-                return;
-            case -3:
-                /* uninstall a Ctrl-C signal handler */
-                sigint_h.close();
-                sigint_h = undefined;
                 return;
             }
             last_fun = this_fun;
@@ -965,12 +968,12 @@ import * as uv from "uv";
             var filename = expr.substring(cmd.length + 1).trim();
             if (filename.lastIndexOf(".") <= filename.lastIndexOf("/"))
                 filename += ".js";
-            std.loadScript(filename);
+            quv.loadScript(filename);
             return false;
         } else if (cmd === "t") {
             show_time = !show_time;
         } else if (cmd === "clear") {
-            stdout.write("\x1b[H\x1b[J");
+            clear_screen();
         } else if (cmd === "q") {
             exit(0);
         } else {
@@ -996,7 +999,7 @@ import * as uv from "uv";
         try {
             var now = (new Date).getTime();
             /* eval as a script */
-            result = std.evalScript(expr);
+            result = quv.evalScript(expr);
             eval_time = (new Date).getTime() - now;
             stdout.write(colors[styles.result]);
             print(result);
@@ -1069,7 +1072,7 @@ import * as uv from "uv";
         level = 0;
         
         /* run the garbage collector after each command */
-        std.gc();
+        quv.gc();
     }
 
     function colorize_js(str) {

@@ -4,11 +4,11 @@ matrix:
     - os: linux
       dist: bionic
       compiler: gcc
-      env: BUILDTYPE=Debug
+      env: BUILDTYPE=Debug USE_SYSTEM_CURL=OFF
     - os: linux
       dist: bionic
       compiler: gcc
-      env: BUILDTYPE=Release
+      env: BUILDTYPE=Release USE_SYSTEM_CURL=OFF
     - os: linux
       dist: bionic
       compiler: clang
@@ -17,21 +17,23 @@ matrix:
       dist: bionic
       compiler: clang
       env: BUILDTYPE=Release
-    - os: linux
-      dist: bionic
-      addons:
-        apt:
-          update: true
-          packages:
-            - musl-tools
-      env: BUILDTYPE=Debug CC=musl-gcc LINK=musl-gcc
     - os: osx
       env: BUILDTYPE=Debug
     - os: osx
       env: BUILDTYPE=Release
+addons:
+  apt:
+    update: true
+    packages:
+      - ninja-build
+  homebrew:
+    update: true
+    packages:
+      - ninja
 script:
   - make
-  - ./build/quv -e "console.log('hello world');"
+  - ./build/quv -e "console.log(JSON.stringify(quv.versions))"
+  - make test
 branches:
   only:
     - master

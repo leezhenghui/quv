@@ -22,13 +22,14 @@
  * THE SOFTWARE.
  */
 
-#ifndef QUV_DNS_H
-#define QUV_DNS_H
+#include "../version.h"
 
-#include <quickjs.h>
+#include "utils.h"
 
 
-void quv_mod_dns_init(JSContext *ctx, JSModuleDef *m);
-void quv_mod_dns_export(JSContext *ctx, JSModuleDef *m);
+#define QUV_VERSION_STRING                                                                                             \
+    STRINGIFY(QUV_VERSION_MAJOR) "." STRINGIFY(QUV_VERSION_MINOR) "." STRINGIFY(QUV_VERSION_PATCH) QUV_VERSION_SUFFIX
 
-#endif
+const char *quv_version(void) {
+    return QUV_VERSION_STRING;
+}

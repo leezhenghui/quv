@@ -1,13 +1,25 @@
 // Sample TCP echo client.
 //
 
+import { getopts } from '@quv/getopts';
 import { addr, logError } from './utils.js';
 
 
 (async () => {
-    const t = new uv.TCP();
+    const options = getopts(quv.args.slice(2), {
+        alias: {
+            connect: 'c',
+            port: 'p'
+        },
+        default: {
+            connect: '127.0.0.1',
+            port: 1234
+        }
+    });
+
+    const t = new quv.TCP();
     
-    await t.connect({ip: global.scriptArgs[2] || '127.0.0.1', port: global.scriptArgs[3] || 1234});
+    await t.connect({ip: options.connect, port: options.port});
     
     console.log(`Connected to ${addr(t.getpeername())}`);
 

@@ -22,13 +22,15 @@
  * THE SOFTWARE.
  */
 
-#ifndef QUV_UDP_H
-#define QUV_UDP_H
-
-#include <quickjs.h>
+#ifndef QUV_VERSION_H
+#define QUV_VERSION_H
 
 
-void quv_mod_udp_init(JSContext *ctx, JSModuleDef *m);
-void quv_mod_udp_export(JSContext *ctx, JSModuleDef *m);
+#define QUV_VERSION_MAJOR @QUV__VERSION_MAJOR@
+#define QUV_VERSION_MINOR @QUV__VERSION_MINOR@
+#define QUV_VERSION_PATCH @QUV__VERSION_PATCH@
+#define QUV_VERSION_SUFFIX "@QUV__VERSION_SUFFIX@"
+
+const char* quv_version(void);
 
 #endif

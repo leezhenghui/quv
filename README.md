@@ -12,7 +12,7 @@ Currently the following is already implemented in the `quv` (formerly `qjs`) int
 - Unix sockets / named pipes
 - Timers
 - Signals
-- Basic file operations
+- File operations
 - Event loop
 - High-resolution time
 - Miscellaneous utility functions
@@ -23,14 +23,18 @@ Currently the following is already implemented in the `quv` (formerly `qjs`) int
 Other extras:
 
 - TextEncoder / TextDecoder APIs
+- URL polyfill
+- Import directly from HTTP(S) URLs
 
 See the [full API].
 
 ## Building
 
-CMake is necessary. This has been mostly tested on macOS, YMLMV.
+CMake is necessary.
 
 ```bash
+# Get the code
+git clone --recursive https://github.com/saghul/quv && cd quv
 # Compile it!
 make
 # Run the REPL

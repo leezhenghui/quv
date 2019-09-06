@@ -22,9 +22,7 @@
  * THE SOFTWARE.
  */
 
-#include "dns.h"
-
-#include "error.h"
+#include "private.h"
 #include "utils.h"
 
 #include <string.h>
@@ -90,7 +88,7 @@ static void uv__getaddrinfo_cb(uv_getaddrinfo_t *req, int status, struct addrinf
 
     JSContext *ctx = gr->ctx;
     JSValue arg;
-    BOOL is_reject = status != 0;
+    bool is_reject = status != 0;
 
     if (status != 0)
         arg = quv_new_error(ctx, status);

@@ -26,24 +26,13 @@
 #define QUV_UTILS_H
 
 #include <quickjs.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <uv.h>
 
 
-#define stringify(s) tostring(s)
-#define tostring(s) #s
-
 #ifndef countof
 #    define countof(x) (sizeof(x) / sizeof((x)[0]))
-#endif
-
-typedef int BOOL;
-
-#ifndef FALSE
-enum {
-    FALSE = 0,
-    TRUE = 1,
-};
 #endif
 
 struct AssertionInfo {
@@ -59,17 +48,17 @@ struct AssertionInfo {
     } while (0)
 
 #ifdef __GNUC__
-#    define LIKELY(expr) __builtin_expect(!!(expr), 1)
-#    define UNLIKELY(expr) __builtin_expect(!!(expr), 0)
+#    define LIKELY(expr)         __builtin_expect(!!(expr), 1)
+#    define UNLIKELY(expr)       __builtin_expect(!!(expr), 0)
 #    define PRETTY_FUNCTION_NAME __PRETTY_FUNCTION__
 #else
-#    define LIKELY(expr) expr
-#    define UNLIKELY(expr) expr
+#    define LIKELY(expr)         expr
+#    define UNLIKELY(expr)       expr
 #    define PRETTY_FUNCTION_NAME ""
 #endif
 
 #define STRINGIFY_(x) #x
-#define STRINGIFY(x) STRINGIFY_(x)
+#define STRINGIFY(x)  STRINGIFY_(x)
 
 #define CHECK(expr)                                                                                                    \
     do {                                                                                                               \
@@ -78,13 +67,13 @@ struct AssertionInfo {
         }                                                                                                              \
     } while (0)
 
-#define CHECK_EQ(a, b) CHECK((a) == (b))
-#define CHECK_GE(a, b) CHECK((a) >= (b))
-#define CHECK_GT(a, b) CHECK((a) > (b))
-#define CHECK_LE(a, b) CHECK((a) <= (b))
-#define CHECK_LT(a, b) CHECK((a) < (b))
-#define CHECK_NE(a, b) CHECK((a) != (b))
-#define CHECK_NULL(val) CHECK((val) == NULL)
+#define CHECK_EQ(a, b)      CHECK((a) == (b))
+#define CHECK_GE(a, b)      CHECK((a) >= (b))
+#define CHECK_GT(a, b)      CHECK((a) > (b))
+#define CHECK_LE(a, b)      CHECK((a) <= (b))
+#define CHECK_LT(a, b)      CHECK((a) < (b))
+#define CHECK_NE(a, b)      CHECK((a) != (b))
+#define CHECK_NULL(val)     CHECK((val) == NULL)
 #define CHECK_NOT_NULL(val) CHECK((val) != NULL)
 
 void quv_assert(const struct AssertionInfo info);
@@ -108,7 +97,7 @@ void QUV_FreePromise(JSContext *ctx, QUVPromise *p);
 void QUV_FreePromiseRT(JSRuntime *rt, QUVPromise *p);
 void QUV_ClearPromise(JSContext *ctx, QUVPromise *p);
 void QUV_MarkPromise(JSRuntime *rt, QUVPromise *p, JS_MarkFunc *mark_func);
-void QUV_SettlePromise(JSContext *ctx, QUVPromise *p, BOOL is_reject, int argc, JSValueConst *argv);
+void QUV_SettlePromise(JSContext *ctx, QUVPromise *p, bool is_reject, int argc, JSValueConst *argv);
 void QUV_ResolvePromise(JSContext *ctx, QUVPromise *p, int argc, JSValueConst *argv);
 void QUV_RejectPromise(JSContext *ctx, QUVPromise *p, int argc, JSValueConst *argv);
 JSValue QUV_NewResolvedPromise(JSContext *ctx, int argc, JSValueConst *argv);
